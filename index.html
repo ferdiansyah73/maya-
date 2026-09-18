@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toko Online & Sistem Manajemen Pesanan</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SheetJS (xlsx) for Excel Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <!-- jsPDF for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 flex flex-col justify-between">
+
+    <!-- Header Navigation -->
+    <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-store text-2xl"></i>
+                <h1 class="text-xl font-bold tracking-wide">TokoDigital.id</h1>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <!-- Navigation Tabs -->
+                <button onclick="switchTab('shop')" id="nav-shop" class="bg-indigo-800 px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center space-x-2 border border-indigo-500">
+                    <i class="fa-solid fa-bag-shopping"></i>
+                    <span>Toko</span>
+                </button>
+                <button onclick="switchTab('admin')" id="nav-admin" class="hover:bg-indigo-600 px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center space-x-2 transition">
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span>Admin Panel</span>
+                </button>
+
+                <!-- Cart Button -->
+                <button onclick="toggleCartModal()" class="relative bg-amber-500 hover:bg-amber-600 text-slate-900 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center space-x-2 transition">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span id="cart-count" class="bg-red-600 text-white rounded-full text-xs px-2 py-0.5 font-bold">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
+        
+        <!-- SHOP VIEW -->
+        <section id="shop-view">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">Katalog Produk</h2>
+                    <p class="text-slate-500 text-sm">Pilih produk favorit Anda dan lakukan pemesanan secara instan</p>
+                </div>
+            </div>
+
+            <!-- Product Grid -->
+            <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Dynamic Products loaded via JavaScript -->
+            </div>
+        </section>
+
+        <!-- ADMIN PANEL VIEW -->
+        <section id="admin-view" class="hidden">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">Panel Manajemen Pesanan</h2>
+                    <p class="text-slate-500 text-sm">Kelola pesanan masuk, ekspor data Excel, dan cetak dokumen PDF</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="exportToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 shadow-sm transition">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <span>Ekspor Excel (.xlsx)</span>
+                    </button>
+                    <button onclick="generateWOListPDF()" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 shadow-sm transition">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>Cetak WO List (PDF)</span>
+                    </button>
+                    <button onclick="clearOrders()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-2 rounded-lg text-sm font-medium transition">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Order Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 font-semibold text-xs uppercase tracking-wider border-b border-slate-200">
+                                <th class="p-4">No. Order</th>
+                                <th class="p-4">Tanggal</th>
+                                <th class="p-4">Pelanggan</th>
+                                <th class="p-4">Alamat</th>
+                                <th class="p-4">Detail Items</th>
+                                <th class="p-4">Total</th>
+                                <th class="p-4 text-center">Aksi (Cetak Label)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-table-body" class="divide-y divide-slate-200 text-sm">
+                            <!-- Orders loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="empty-orders-msg" class="p-8 text-center text-slate-400">
+                    <i class="fa-solid fa-box-open text-4xl mb-2"></i>
+                    <p>Belum ada data pesanan masuk.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Shopping Cart Modal -->
+    <div id="cart-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex justify-end hidden">
+        <div class="bg-white w-full max-w-md h-full flex flex-col justify-between shadow-2xl">
+            <!-- Modal Header -->
+            <div class="p-4 bg-slate-100 border-b flex justify-between items-center">
+                <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-cart-shopping text-indigo-600"></i> Keranjang Belanja
+                </h3>
+                <button onclick="toggleCartModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body (Cart Items) -->
+            <div id="cart-items" class="p-4 overflow-y-auto flex-grow divide-y divide-slate-100">
+                <!-- Cart items dynamically added -->
+            </div>
+
+            <!-- Modal Footer / Checkout Form -->
+            <div class="p-4 bg-slate-50 border-t space-y-4">
+                <div class="flex justify-between items-center font-bold text-lg">
+                    <span>Total Subtotal:</span>
+                    <span id="cart-total-price" class="text-indigo-600">Rp 0</span>
+                </div>
+
+                <div class="border-t pt-3 space-y-2">
+                    <h4 class="font-semibold text-xs uppercase tracking-wide text-slate-500">Informasi Pengiriman</h4>
+                    <input type="text" id="cust-name" placeholder="Nama Lengkap" class="w-full p-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <input type="text" id="cust-phone" placeholder="Nomor Telepon / WA" class="w-full p-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <textarea id="cust-address" placeholder="Alamat Lengkap Pengiriman" rows="2" class="w-full p-2 text-sm border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+                </div>
+
+                <button onclick="processCheckout()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg shadow-lg hover:shadow-indigo-200 transition">
+                    Buat Pesanan Sekarang
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center space-x-3 transition-opacity duration-300 opacity-0 pointer-events-none z-50">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-xl"></i>
+        <span id="toast-message" class="text-sm">Berhasil diproses!</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
+        &copy; 2026 TokoDigital - Sistem Toko Online & Export Order PDF/Excel
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Sample Products
+        const products = [
+            { id: 1, name: 'Sepatu Sneakers Canvas', price: 250000, img: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400' },
+            { id: 2, name: 'T-Shirt Cotton Combed 30s', price: 85000, img: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=400' },
+            { id: 3, name: 'Tas Ransel Laptop Premium', price: 320000, img: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400' },
+            { id: 4, name: 'Jam Tangan Sporty Casual', price: 175000, img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400' }
+        ];
+
+        // App States
+        let cart = [];
+        let orders = JSON.parse(localStorage.getItem('store_orders') || '[]');
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', () => {
+            renderProducts();
+            renderOrdersTable();
+        });
+
+        // Navigation Switcher
+        function switchTab(tab) {
+            const shopView = document.getElementById('shop-view');
+            const adminView = document.getElementById('admin-view');
+            const navShop = document.getElementById('nav-shop');
+            const navAdmin = document.getElementById('nav-admin');
+
+            if(tab === 'shop') {
+                shopView.classList.remove('hidden');
+                adminView.classList.add('hidden');
+                navShop.className = 'bg-indigo-800 px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center space-x-2 border border-indigo-500';
+                navAdmin.className = 'hover:bg-indigo-600 px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center space-x-2 transition';
+            } else {
+                shopView.classList.add('hidden');
+                adminView.classList.remove('hidden');
+                navAdmin.className = 'bg-indigo-800 px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center space-x-2 border border-indigo-500';
+                navShop.className = 'hover:bg-indigo-600 px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center space-x-2 transition';
+            }
+        }
+
+        // Render Product Cards
+        function renderProducts() {
+            const container = document.getElementById('product-grid');
+            container.innerHTML = products.map(p => `
+                <div class="bg-white rounded-xl shadow-sm hover:shadow-md border border-slate-200 overflow-hidden flex flex-col justify-between transition">
+                    <div>
+                        <img src="${p.img}" alt="${p.name}" class="w-full h-48 object-cover">
+                        <div class="p-4">
+                            <h3 class="font-bold text-slate-800 text-base mb-1">${p.name}</h3>
+                            <p class="text-indigo-600 font-bold">Rp ${p.price.toLocaleString('id-ID')}</p>
+                        </div>
+                    </div>
+                    <div class="p-4 pt-0">
+                        <button onclick="addToCart(${p.id})" class="w-full bg-slate-900 hover:bg-indigo-600 text-white text-sm font-medium py-2 rounded-lg transition flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Tambah Keranjang</span>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Cart Actions
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            const existItem = cart.find(c => c.id === productId);
+
+            if (existItem) {
+                existItem.qty += 1;
+            } else {
+                cart.push({ ...product, qty: 1 });
+            }
+
+            updateCartUI();
+            showToast('Produk ditambahkan ke keranjang!');
+        }
+
+        function updateCartQty(id, delta) {
+            const item = cart.find(c => c.id === id);
+            if (item) {
+                item.qty += delta;
+                if (item.qty <= 0) {
+                    cart = cart.filter(c => c.id !== id);
+                }
+            }
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            const cartItems = document.getElementById('cart-items');
+            const cartCount = document.getElementById('cart-count');
+            const cartTotal = document.getElementById('cart-total-price');
+
+            const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
+            const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+
+            cartCount.textContent = totalQty;
+            cartTotal.textContent = `Rp ${totalPrice.toLocaleString('id-ID')}`;
+
+            if (cart.length === 0) {
+                cartItems.innerHTML = `
+                    <div class="h-64 flex flex-col justify-center items-center text-slate-400">
+                        <i class="fa-solid fa-cart-arrow-down text-4xl mb-2"></i>
+                        <p class="text-sm">Keranjang Anda masih kosong</p>
+                    </div>
+                `;
+                return;
+            }
+
+            cartItems.innerHTML = cart.map(item => `
+                <div class="py-3 flex justify-between items-center">
+                    <div class="pr-2">
+                        <h4 class="font-medium text-slate-800 text-sm">${item.name}</h4>
+                        <p class="text-xs text-slate-500">Rp ${item.price.toLocaleString('id-ID')} x ${item.qty}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="updateCartQty(${item.id}, -1)" class="w-6 h-6 bg-slate-200 hover:bg-slate-300 rounded flex items-center justify-center text-xs font-bold">-</button>
+                        <span class="text-xs font-bold w-4 text-center">${item.qty}</span>
+                        <button onclick="updateCartQty(${item.id}, 1)" class="w-6 h-6 bg-slate-200 hover:bg-slate-300 rounded flex items-center justify-center text-xs font-bold">+</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleCartModal() {
+            const modal = document.getElementById('cart-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        // Checkout Process
+        function processCheckout() {
+            if (cart.length === 0) {
+                alert('Keranjang belanja Anda kosong!');
+                return;
+            }
+
+            const name = document.getElementById('cust-name').value.trim();
+            const phone = document.getElementById('cust-phone').value.trim();
+            const address = document.getElementById('cust-address').value.trim();
+
+            if (!name || !phone || !address) {
+                alert('Silakan lengkapi semua informasi pengiriman.');
+                return;
+            }
+
+            const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            const newOrder = {
+                id: 'ORD-' + Date.now().toString().slice(-6),
+                date: new Date().toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }),
+                customer: { name, phone, address },
+                items: [...cart],
+                totalPrice: totalPrice
+            };
+
+            orders.unshift(newOrder);
+            localStorage.setItem('store_orders', JSON.stringify(orders));
+
+            // Clear Cart & Form
+            cart = [];
+            document.getElementById('cust-name').value = '';
+            document.getElementById('cust-phone').value = '';
+            document.getElementById('cust-address').value = '';
+
+            updateCartUI();
+            toggleCartModal();
+            renderOrdersTable();
+            showToast('Pesanan berhasil dibuat!');
+        }
+
+        // Render Orders in Admin View
+        function renderOrdersTable() {
+            const tbody = document.getElementById('orders-table-body');
+            const emptyMsg = document.getElementById('empty-orders-msg');
+
+            if (orders.length === 0) {
+                tbody.innerHTML = '';
+                emptyMsg.classList.remove('hidden');
+                return;
+            }
+
+            emptyMsg.classList.add('hidden');
+            tbody.innerHTML = orders.map(ord => {
+                const itemSummary = ord.items.map(i => `${i.name} (x${i.qty})`).join(', ');
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4 font-mono font-bold text-indigo-600">${ord.id}</td>
+                        <td class="p-4 text-xs text-slate-500">${ord.date}</td>
+                        <td class="p-4">
+                            <p class="font-bold text-slate-800">${ord.customer.name}</p>
+                            <p class="text-xs text-slate-500">${ord.customer.phone}</p>
+                        </td>
+                        <td class="p-4 text-xs max-w-xs text-slate-600 truncate">${ord.customer.address}</td>
+                        <td class="p-4 text-xs text-slate-700 max-w-xs">${itemSummary}</td>
+                        <td class="p-4 font-bold text-slate-900">Rp ${ord.totalPrice.toLocaleString('id-ID')}</td>
+                        <td class="p-4 text-center">
+                            <button onclick="generateShippingLabelPDF('${ord.id}')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-md text-xs font-semibold flex items-center space-x-1 mx-auto transition">
+                                <i class="fa-solid fa-print"></i>
+                                <span>Label PDF</span>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 1. Export Data to Excel
+        function exportToExcel() {
+            if (orders.length === 0) {
+                alert('Tidak ada data pesanan untuk diekspor!');
+                return;
+            }
+
+            const excelData = orders.map((ord, idx) => ({
+                'No.': idx + 1,
+                'ID Order': ord.id,
+                'Tanggal': ord.date,
+                'Nama Pelanggan': ord.customer.name,
+                'No. HP': ord.customer.phone,
+                'Alamat Pengiriman': ord.customer.address,
+                'Daftar Barang': ord.items.map(i => `${i.name} (x${i.qty})`).join('; '),
+                'Total Bayar (Rp)': ord.totalPrice
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Data_Pesanan");
+
+            XLSX.writeFile(workbook, `Data_Pesanan_TokoDigital_${Date.now()}.xlsx`);
+            showToast('Berhasil mengunduh Excel!');
+        }
+
+        // 2. Generate Work Order (WO) List PDF
+        function generateWOListPDF() {
+            if (orders.length === 0) {
+                alert('Tidak ada data pesanan untuk dicetak!');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Header Document
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text("WORK ORDER LIST - REKAP PESANAN", 14, 20);
+
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 28);
+            doc.text(`Total Pesanan: ${orders.length} Order`, 14, 34);
+
+            // Table Body Format
+            const tableRows = orders.map((ord, i) => [
+                i + 1,
+                ord.id,
+                ord.customer.name,
+                ord.customer.phone,
+                ord.items.map(item => `${item.name} x${item.qty}`).join('\n'),
+                `Rp ${ord.totalPrice.toLocaleString('id-ID')}`
+            ]);
+
+            doc.autoTable({
+                startY: 40,
+                head: [['No', 'ID Order', 'Pelanggan', 'No HP', 'Detail Barang', 'Total']],
+                body: tableRows,
+                headStyles: { fillColor: [67, 56, 202] }, // Indigo
+                styles: { fontSize: 8, cellPadding: 3 },
+                columnStyles: {
+                    0: { cellWidth: 10 },
+                    1: { cellWidth: 25 },
+                    2: { cellWidth: 35 },
+                    3: { cellWidth: 30 },
+                    4: { cellWidth: 60 },
+                    5: { cellWidth: 30 }
+                }
+            });
+
+            doc.save(`Work_Order_List_${Date.now()}.pdf`);
+            showToast('WO List PDF berhasil diunduh!');
+        }
+
+        // 3. Generate Shipping Label PDF (Standard Shipping Label Size)
+        function generateShippingLabelPDF(orderId) {
+            const ord = orders.find(o => o.id === orderId);
+            if (!ord) return;
+
+            const { jsPDF } = window.jspdf;
+            // 100mm x 150mm Label standard thermal format
+            const doc = new jsPDF({
+                orientation: 'p',
+                unit: 'mm',
+                format: [100, 150]
+            });
+
+            // Outer Border
+            doc.rect(3, 3, 94, 144);
+            
+            // Header Section
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text("TokoDigital.id", 8, 12);
+            
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.text("LABEL PENGIRIMAN PESANAN", 8, 17);
+
+            doc.line(3, 20, 97, 20); // Divider
+
+            // Order Meta
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`NO. ORDER: ${ord.id}`, 8, 26);
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Tgl: ${ord.date}`, 8, 31);
+
+            doc.line(3, 35, 97, 35); // Divider
+
+            // Penerima (Destination)
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            doc.text("PENERIMA:", 8, 42);
+            doc.setFontSize(11);
+            doc.text(ord.customer.name.toUpperCase(), 8, 48);
+            
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Telp: ${ord.customer.phone}`, 8, 54);
+
+            // Multiline Address
+            doc.setFontSize(8);
+            const splitAddress = doc.splitTextToSize(ord.customer.address, 84);
+            doc.text(splitAddress, 8, 60);
+
+            const addressHeight = splitAddress.length * 4;
+            let currentY = 60 + addressHeight + 4;
+
+            doc.line(3, currentY, 97, currentY); // Divider
+            currentY += 6;
+
+            // Items List
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'bold');
+            doc.text("ISI PAKET / DAFTAR BARANG:", 8, currentY);
+            currentY += 5;
+
+            doc.setFont('helvetica', 'normal');
+            ord.items.forEach((item) => {
+                doc.text(`• ${item.name} (x${item.qty})`, 8, currentY);
+                currentY += 4.5;
+            });
+
+            // Footer / Total
+            currentY = Math.max(currentY + 2, 130);
+            doc.line(3, currentY, 97, currentY);
+            currentY += 6;
+
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`TOTAL BAYAR: Rp ${ord.totalPrice.toLocaleString('id-ID')}`, 8, currentY);
+
+            doc.setFontSize(7);
+            doc.setFont('helvetica', 'italic');
+            doc.text("Terima kasih telah berbelanja!", 8, currentY + 6);
+
+            doc.save(`Label_${ord.id}.pdf`);
+            showToast('Label PDF berhasil dibuat!');
+        }
+
+        // Clear Orders Data
+        function clearOrders() {
+            if (confirm('Apakah Anda yakin ingin menghapus semua data pesanan masuk?')) {
+                orders = [];
+                localStorage.removeItem('store_orders');
+                renderOrdersTable();
+                showToast('Semua pesanan telah dihapus.');
+            }
+        }
+
+        // Toast Helper
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            toastMsg.textContent = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
